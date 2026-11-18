@@ -23,8 +23,18 @@ jobs:
           java-version: 17
           cache: gradle
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      # Install exactly the SDK components the build needs. The runner already has
+      # the Android SDK in $ANDROID_HOME; this only adds the missing pieces.
+      # (android-actions/setup-android@v3 fails here: it asks for the obsolete "tools" package.)
+      - name: Install Android SDK components
+        run: |
+          SDKMANAGER="$(ls -d "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager | head -1)"
+          yes | "$SDKMANAGER" --licenses > /dev/null
+          "$SDKMANAGER" \
+            "platforms;android-35" \
+            "build-tools;35.0.0" \
+            "ndk;27.0.12077973" \
+            "cmake;3.22.1"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4

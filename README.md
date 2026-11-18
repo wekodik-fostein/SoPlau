@@ -30,13 +30,19 @@ gradle wrapper --gradle-version 8.10.2   # один раз, если wrapper н�
 
 Файл `app/build/outputs/apk/debug/app-debug.apk`.
 
-## Offline: нативный GGUF
+## Offline: нативный GGUF (llama.cpp)
 
-Выбор `.gguf` копирует файл в `files/models/` и сохраняет путь.
-Прямой вызов llama.cpp через JNI подготовлен в `data/engine/GgufEngine.kt`:
-контракт JNI-функций описан там же. Пока библиотека `soplau_llama` не собрана и
-не упакована в APK, приложение использует локальный сервер (`localBaseUrl`).
-Это сделано специально: без нативной библиотеки сборка не падает.
+- `app/src/main/cpp/soplau_llama.cpp` — JNI-мост к llama.cpp: загрузка модели, chat-template из GGUF,
+  сэмплинг (top-k, top-p, temperature), потоковая отдача текста с корректным UTF-8.
+- `app/src/main/cpp/CMakeLists.txt` — собирает llama.cpp тега `b6000` (фиксирован в `SOPLAU_LLAMA_TAG`)
+  статически в `libsoplau_llama.so`. Только arm64-v8a.
+- `GgufEngine` кэширует загруженную модель между сообщениями; перезагрузка только при смене файла.
+
+Выбор `.gguf` копирует файл в `files/models/` и сохраняет путь. Если нативная библиотека не
+собрана, приложение использует локальный сервер (`localBaseUrl`) — сборка при этом не падает.
+
+Проверка моста на хосте (без Android): см. `tests/native/README.md`. Там загрузка модели,
+стриминг, отмена, превышение контекста и корректность UTF-8 на границах токенов.
 
 ## Структура
 
